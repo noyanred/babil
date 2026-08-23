@@ -42,7 +42,7 @@
                 <p><strong>Dil:</strong> <span id="modalLang">-</span></p>
                 
                 <div style="margin-top: 15px; display: flex; gap: 10px;">
-                    <select id="editStatusSelect" style="flex: 1;">
+                    <select id="editStatusSelect" style="flex: 1; min-width: 0;">
                         <option value="okunmadi">Okunmadı</option>
                         <option value="sirada">Sırada</option>
                         <option value="okundu">Okundu</option>
@@ -77,10 +77,13 @@
                 <input type="text" id="sTitle" placeholder="Kitap Adı / ISBN / Genel Arama (Zorunlu)" required>
                 <input type="text" id="sAuthor" placeholder="Yazar Adı (Opsiyonel)">
                 
+                <!-- Yayınevi artık kendi tam satırında -->
+                <input type="text" id="sPublisher" placeholder="Yayınevi (Opsiyonel)">
+                
+                <!-- Yıl ve Dil aynı satırda, min-width ezildi -->
                 <div style="display: flex; gap: 10px;">
-                    <input type="text" id="sPublisher" placeholder="Yayınevi (Ops.)" style="flex: 1;">
-                    <input type="number" id="sYear" placeholder="Yıl (Ops.)" style="flex: 1;">
-                    <select id="sLang" style="flex: 1;">
+                    <input type="number" id="sYear" placeholder="Yıl (Ops.)" style="flex: 1; min-width: 50px;">
+                    <select id="sLang" style="flex: 1; min-width: 50px;">
                         <option value="">Dil (Ops.)</option>
                         <option value="tr">Türkçe</option>
                         <option value="en">İngilizce</option>
