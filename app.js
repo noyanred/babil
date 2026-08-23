@@ -1,10 +1,8 @@
 // --- HAFIZA SİSTEMİ (Local Storage) ---
-// Eğer hafıza boşsa, test amaçlı Dune kitabını koy, yoksa hafızadakileri getir.
 let library = JSON.parse(localStorage.getItem('myKutuphane')) || [
     { id: 1, title: "Dune", author: "Frank Herbert", publisher: "İthaki", status: "okundu", year: 1965, lang: "tr", cover: "https://covers.openlibrary.org/b/id/10543665-M.jpg" }
 ];
 
-// Her değişiklikte hafızayı güncelleyen komut
 function saveLibrary() {
     localStorage.setItem('myKutuphane', JSON.stringify(library));
 }
@@ -63,7 +61,7 @@ document.getElementById('updateStatusBtn').addEventListener('click', () => {
     const bookIndex = library.findIndex(b => b.id === currentActiveBookId);
     if(bookIndex !== -1) {
         library[bookIndex].status = newStatus;
-        saveLibrary(); // HAFIZAYA KAYDET
+        saveLibrary(); 
         renderLibrary(library);
         bookModal.style.display = 'none';
     }
@@ -72,13 +70,13 @@ document.getElementById('updateStatusBtn').addEventListener('click', () => {
 document.getElementById('deleteBookBtn').addEventListener('click', () => {
     if(confirm("Bu kitabı kütüphaneden silmek istediğine emin misin?")) {
         library = library.filter(b => b.id !== currentActiveBookId);
-        saveLibrary(); // HAFIZAYA KAYDET
+        saveLibrary(); 
         renderLibrary(library);
         bookModal.style.display = 'none';
     }
 });
 
-// --- GELİŞMİŞ ARAMA VE DÜZENLEME (GOOGLE BOOKS API) ---
+// --- GELİŞMİŞ ARAMA VE DÜZENLEME (ÇİFT MOTORLU API) ---
 const searchModal = document.getElementById('searchModal');
 const apiResultsDiv = document.getElementById('apiResults');
 const loadingText = document.getElementById('loadingText');
@@ -112,7 +110,7 @@ document.getElementById('editBookBtn').addEventListener('click', () => {
 
 document.getElementById('closeSearchModal').addEventListener('click', () => searchModal.style.display = 'none');
 
-// Manuel Olarak Formdaki Bilgileri Kaydet (API'siz zorla kaydetme)
+// Manuel Olarak Formdaki Bilgileri Kaydet
 manualSaveBtn.addEventListener('click', () => {
     const titleVal = document.getElementById('sTitle').value.trim();
     if(!titleVal) { alert("Lütfen en azından kitap adını girin."); return; }
@@ -137,61 +135,92 @@ manualSaveBtn.addEventListener('click', () => {
             cover: ""
         });
     }
-    saveLibrary(); // HAFIZAYA KAYDET
+    saveLibrary(); 
     renderLibrary(library);
     searchModal.style.display = 'none';
 });
 
-// Google Books API Üzerinden Arama
+// ÇİFT MOTORLU ARAMA (Google + Open Library)
 document.getElementById('advancedSearchForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const t = document.getElementById('sTitle').value.trim();
     const a = document.getElementById('sAuthor').value.trim();
     const p = document.getElementById('sPublisher').value.trim();
+    const y = document.getElementById('sYear').value.trim();
     
     loadingText.style.display = 'block';
     apiResultsDiv.innerHTML = '';
 
-    // Google API için arama dizesi oluşturma
     let queryStr = t;
     if(a) queryStr += " " + a;
     if(p) queryStr += " " + p;
+    if(y) queryStr += " " + y;
 
-    let queryUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(queryStr)}&maxResults=10`;
+    let googleUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(queryStr)}&maxResults=10`;
+    let openLibUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(queryStr)}&limit=10`;
 
     try {
-        const response = await fetch(queryUrl);
-        const data = await response.json();
+        const [googleRes, openLibRes] = await Promise.allSettled([
+            fetch(googleUrl),
+            fetch(openLibUrl)
+        ]);
+
+        let results = [];
+
+        // 1. Google Sonuçlarını Ayıkla
+        if (googleRes.status === 'fulfilled' && googleRes.value.ok) {
+            const gData = await googleRes.value.json();
+            if (gData.items) {
+                gData.items.forEach(item => {
+                    const doc = item.volumeInfo;
+                    results.push({
+                        title: doc.title || "İsimsiz",
+                        author: doc.authors ? doc.authors.join(", ") : "",
+                        publisher: doc.publisher || "",
+                        year: doc.publishedDate ? doc.publishedDate.substring(0, 4) : "",
+                        lang: doc.language || "",
+                        cover: doc.imageLinks ? (doc.imageLinks.thumbnail || doc.imageLinks.smallThumbnail).replace("http:", "https:") : ""
+                    });
+                });
+            }
+        }
+
+        // 2. Open Library Sonuçlarını Ayıkla
+        if (openLibRes.status === 'fulfilled' && openLibRes.value.ok) {
+            const oData = await openLibRes.value.json();
+            if (oData.docs) {
+                oData.docs.forEach(doc => {
+                    results.push({
+                        title: doc.title,
+                        author: doc.author_name ? doc.author_name[0] : "",
+                        publisher: doc.publisher ? doc.publisher[0] : "",
+                        year: doc.first_publish_year || "",
+                        lang: doc.language ? doc.language[0] : "",
+                        cover: doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` : ""
+                    });
+                });
+            }
+        }
+
         loadingText.style.display = 'none';
 
-        if(!data.items || data.items.length === 0) {
-            apiResultsDiv.innerHTML = '<p>Sonuç bulunamadı. Filtreleri azaltmayı deneyin veya "Sadece Yazdıklarımı Kaydet" butonunu kullanın.</p>';
+        if (results.length === 0) {
+            apiResultsDiv.innerHTML = '<p>Her iki veritabanında da sonuç bulunamadı. Lütfen "Sadece Yazdıklarımı Kaydet" butonunu kullanın.</p>';
             return;
         }
 
-        data.items.forEach(item => {
-            const doc = item.volumeInfo;
-            const title = doc.title || "İsimsiz";
-            const author = doc.authors ? doc.authors.join(", ") : "";
-            const publisher = doc.publisher || "";
-            const year = doc.publishedDate ? doc.publishedDate.substring(0, 4) : "";
-            const lang = doc.language || "";
-            let coverUrl = "";
-            if (doc.imageLinks) {
-                coverUrl = doc.imageLinks.thumbnail || doc.imageLinks.smallThumbnail || "";
-                coverUrl = coverUrl.replace("http:", "https:"); // Güvenlik uyarısını önlemek için
-            }
-
+        // 3. Sonuçları Ekrana Bas
+        results.slice(0, 15).forEach(doc => {
             const resultDiv = document.createElement('div');
             resultDiv.style.border = "1px solid var(--border-color)";
             resultDiv.style.padding = "10px";
             resultDiv.style.borderRadius = "8px";
             resultDiv.innerHTML = `
                 <div style="display:flex; gap:10px;">
-                    ${coverUrl ? `<img src="${coverUrl}" style="width:50px; height:75px; object-fit:cover; border-radius:4px;">` : `<div style="width:50px; height:75px; background:#404040; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:9px;">Yok</div>`}
+                    ${doc.cover ? `<img src="${doc.cover}" style="width:50px; height:75px; object-fit:cover; border-radius:4px;">` : `<div style="width:50px; height:75px; background:#404040; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:9px;">Yok</div>`}
                     <div style="flex:1;">
-                        <div style="font-weight:bold; font-size:14px;">${title}</div>
-                        <div style="font-size:12px; opacity:0.8; margin-bottom:5px;">Yazar: ${author} | Yayınevi: ${publisher} | Yıl: ${year}</div>
+                        <div style="font-weight:bold; font-size:14px;">${doc.title}</div>
+                        <div style="font-size:12px; opacity:0.8; margin-bottom:5px;">Yazar: ${doc.author} | Yayınevi: ${doc.publisher} | Yıl: ${doc.year}</div>
                         <button class="action-btn" style="padding:6px; font-size:12px; margin:0;">${editingBookId ? "Bununla Güncelle" : "Bunu Kütüphaneye Ekle"}</button>
                     </div>
                 </div>
@@ -201,26 +230,26 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
                 if (editingBookId) {
                     const bookIndex = library.findIndex(b => b.id === editingBookId);
                     if(bookIndex !== -1) {
-                        library[bookIndex].title = title;
-                        library[bookIndex].author = author;
-                        library[bookIndex].publisher = publisher;
-                        library[bookIndex].year = year;
-                        if(lang) library[bookIndex].lang = lang;
-                        if(coverUrl) library[bookIndex].cover = coverUrl;
+                        library[bookIndex].title = doc.title;
+                        library[bookIndex].author = doc.author;
+                        library[bookIndex].publisher = doc.publisher;
+                        library[bookIndex].year = doc.year;
+                        if(doc.lang) library[bookIndex].lang = doc.lang;
+                        if(doc.cover) library[bookIndex].cover = doc.cover;
                     }
                 } else {
                     library.unshift({
                         id: Date.now(),
-                        title: title,
-                        author: author,
-                        publisher: publisher,
-                        year: year,
-                        lang: lang,
+                        title: doc.title,
+                        author: doc.author,
+                        publisher: doc.publisher,
+                        year: doc.year,
+                        lang: doc.lang,
                         status: 'okunmadi',
-                        cover: coverUrl
+                        cover: doc.cover
                     });
                 }
-                saveLibrary(); // HAFIZAYA KAYDET
+                saveLibrary(); 
                 renderLibrary(library);
                 searchModal.style.display = 'none';
             });
