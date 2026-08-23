@@ -1,3 +1,4 @@
+// --- HAFIZA SİSTEMİ (Local Storage) ---
 let library = JSON.parse(localStorage.getItem('myKutuphane')) || [
     { id: 1, title: "Dune", author: "Frank Herbert", publisher: "İthaki", status: "okundu", year: 1965, lang: "tr", cover: "https://covers.openlibrary.org/b/id/10543665-M.jpg" }
 ];
@@ -10,6 +11,7 @@ const gridContainer = document.getElementById('library-grid');
 let currentActiveBookId = null; 
 let editingBookId = null; 
 
+// --- KÜTÜPHANEYİ ÇİZ ---
 function renderLibrary(books) {
     gridContainer.innerHTML = '';
     books.forEach(book => {
@@ -31,6 +33,7 @@ function renderLibrary(books) {
     });
 }
 
+// --- KİTAP DETAY, DURUM VE SİL ---
 const bookModal = document.getElementById('bookModal');
 function openBookDetails(book) {
     currentActiveBookId = book.id;
@@ -79,6 +82,7 @@ document.getElementById('deleteBookBtn').addEventListener('click', () => {
     }
 });
 
+// --- GELİŞMİŞ ARAMA VE DÜZENLEME ---
 const searchModal = document.getElementById('searchModal');
 const apiResultsDiv = document.getElementById('apiResults');
 const loadingText = document.getElementById('loadingText');
@@ -141,7 +145,7 @@ document.getElementById('manualSaveBtn').addEventListener('click', () => {
     searchModal.style.display = 'none';
 });
 
-// --- 3 KADEMELİ ARAMA (TAM ÇÖZÜM) ---
+// --- KATI (STRICT) ARAMA ALGORİTMASI ---
 document.getElementById('advancedSearchForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const t = document.getElementById('sTitle').value.trim();
@@ -153,11 +157,23 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
     loadingText.style.display = 'block';
     apiResultsDiv.innerHTML = '';
 
-    async function fetchResults(queryStr, useLangLimit) {
-        let googleUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(queryStr)}&maxResults=15`;
-        if (useLangLimit && l) googleUrl += `&langRestrict=${l}`;
-        let openLibUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(queryStr)}&limit=15`;
+    try {
+        // API URL'lerini hazırlama
+        let googleQuery = t;
+        if(a) googleQuery += `+inauthor:${a}`;
+        if(p) googleQuery += `+inpublisher:${p}`;
         
+        let googleUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(googleQuery)}&maxResults=10`;
+        if (l) googleUrl += `&langRestrict=${l}`;
+        
+        let olQuery = t;
+        if(a) olQuery += ` ${a}`;
+        let openLibUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(olQuery)}&limit=10`;
+        if (l) {
+            let olLang = l === 'tr' ? 'tur' : (l === 'en' ? 'eng' : (l === 'ja' ? 'jpn' : l));
+            openLibUrl += `&language=${olLang}`;
+        }
+
         const [googleRes, openLibRes] = await Promise.allSettled([ fetch(googleUrl), fetch(openLibUrl) ]);
         let results = [];
 
@@ -166,6 +182,9 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
             if (gData.items) {
                 gData.items.forEach(item => {
                     const doc = item.volumeInfo;
+                    // Strict Kontrol: Kullanıcı bir dil seçtiyse ve API yanlışlıkla başka dilde kitap döndürürse listeleme.
+                    if (l && doc.language && doc.language !== l) return;
+                    
                     results.push({
                         title: doc.title || "İsimsiz",
                         author: doc.authors ? doc.authors.join(", ") : "",
@@ -182,67 +201,34 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
             const oData = await openLibRes.value.json();
             if (oData.docs) {
                 oData.docs.forEach(doc => {
+                    let docLang = doc.language ? doc.language[0] : "";
                     results.push({
                         title: doc.title,
                         author: doc.author_name ? doc.author_name[0] : "",
                         publisher: doc.publisher ? doc.publisher[0] : "",
                         year: doc.first_publish_year || "",
-                        lang: doc.language ? doc.language[0] : "",
+                        lang: docLang === 'tur' ? 'tr' : (docLang === 'eng' ? 'en' : (docLang === 'jpn' ? 'ja' : docLang)),
                         cover: doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` : ""
                     });
                 });
             }
         }
-        return results;
-    }
-
-    try {
-        // KADEME 1: Tüm filtrelerle arama
-        let exactQuery = t;
-        if(a) exactQuery += " " + a;
-        if(p) exactQuery += " " + p;
-        if(y) exactQuery += " " + y;
-
-        let results = await fetchResults(exactQuery, true);
-        let infoMessage = "";
-
-        // KADEME 2: Eğer yayınevi/yıl/dil filtreleri yüzünden sonuç sıfırsa; SADECE Yazar ve Eser adıyla ara
-        if (results.length === 0 && (p || y || l)) {
-            let midQuery = t;
-            if(a) midQuery += " " + a;
-            results = await fetchResults(midQuery, false);
-            if (results.length > 0) infoMessage = "⚠️ Yayınevi, Yıl veya Dil uyuşmazlığı tespit edildi. Eser ve Yazar eşleşmeleri listeleniyor:";
-        }
-
-        // KADEME 3: Eğer Yazar yüzünden de sıfırsa; SADECE ESER ADI ile dünyayı tara
-        if (results.length === 0 && a) {
-            results = await fetchResults(t, false);
-            if (results.length > 0) infoMessage = "⚠️ Detaylarla eşleşme sağlanamadı. Sadece Eser adına ait sonuçlar listeleniyor:";
-        }
 
         loadingText.style.display = 'none';
 
         if (results.length === 0) {
-            apiResultsDiv.innerHTML = '<p>Hiçbir sonuç bulunamadı. Lütfen "Sadece Yazdıklarımı Kaydet" butonunu kullanın.</p>';
+            apiResultsDiv.innerHTML = `
+                <div style="background-color: #ff7675; color: #000; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 13px;">
+                    ⚠️ Aradığınız basım global veritabanlarında (Google/Open Library) bulunamadı. <br><br>
+                    Türkiye'deki butik veya manga yayınevleri kayıtlarını uluslararası sistemlere aktarmadıkları için bu durum yaşanmaktadır. <br><br>
+                    Lütfen bilgileri formdan doldurup yeşil "Sadece Yazdıklarımı Kaydet" butonuna basarak kütüphanenize ekleyin.
+                </div>
+            `;
             return;
         }
 
-        // Bilgilendirme mesajı varsa ekle
-        if (infoMessage) {
-            const infoDiv = document.createElement('div');
-            infoDiv.style.backgroundColor = "var(--badge-sirada)";
-            infoDiv.style.color = "#000";
-            infoDiv.style.padding = "8px";
-            infoDiv.style.borderRadius = "6px";
-            infoDiv.style.fontSize = "12px";
-            infoDiv.style.fontWeight = "bold";
-            infoDiv.style.marginBottom = "10px";
-            infoDiv.innerText = infoMessage;
-            apiResultsDiv.appendChild(infoDiv);
-        }
-
         // Sonuçları Bas
-        results.slice(0, 20).forEach(doc => {
+        results.slice(0, 15).forEach(doc => {
             const resultDiv = document.createElement('div');
             resultDiv.style.border = "1px solid var(--border-color)";
             resultDiv.style.padding = "10px";
