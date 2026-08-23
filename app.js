@@ -20,7 +20,7 @@ function renderLibrary(books) {
         let badgeColor = `var(--badge-${book.status})`;
         let statusText = book.status === 'okunmadi' ? 'Okunmadı' : book.status.charAt(0).toUpperCase() + book.status.slice(1);
         
-        let coverImg = book.cover ? `<img src="${book.cover}" class="book-cover">` : `<div class="book-cover" style="display:flex; align-items:center; justify-content:center; font-size:10px; background:#404040;">Görsel Yok</div>`;
+        let coverImg = book.cover ? `<img src="${book.cover}" class="book-cover">` : `<div class="book-cover" style="display:flex; align-items:center; justify-content:center; font-size:10px; background:#404040; border-radius:6px;">Görsel Yok</div>`;
 
         card.innerHTML = `
             ${coverImg}
@@ -76,13 +76,12 @@ document.getElementById('deleteBookBtn').addEventListener('click', () => {
     }
 });
 
-// --- GELİŞMİŞ ARAMA VE DÜZENLEME (ÇİFT MOTORLU API) ---
+// --- GELİŞMİŞ ARAMA VE DÜZENLEME ---
 const searchModal = document.getElementById('searchModal');
 const apiResultsDiv = document.getElementById('apiResults');
 const loadingText = document.getElementById('loadingText');
 const manualSaveBtn = document.getElementById('manualSaveBtn');
 
-// Yeni Ekleme Modunda Aç
 document.getElementById('manualAddBtn').addEventListener('click', () => {
     document.getElementById('addModal').style.display = 'none';
     editingBookId = null; 
@@ -92,7 +91,6 @@ document.getElementById('manualAddBtn').addEventListener('click', () => {
     searchModal.style.display = 'block';
 });
 
-// Düzenleme Modunda Aç
 document.getElementById('editBookBtn').addEventListener('click', () => {
     bookModal.style.display = 'none';
     editingBookId = currentActiveBookId;
@@ -110,8 +108,7 @@ document.getElementById('editBookBtn').addEventListener('click', () => {
 
 document.getElementById('closeSearchModal').addEventListener('click', () => searchModal.style.display = 'none');
 
-// Manuel Olarak Formdaki Bilgileri Kaydet
-manualSaveBtn.addEventListener('click', () => {
+document.getElementById('manualSaveBtn').addEventListener('click', () => {
     const titleVal = document.getElementById('sTitle').value.trim();
     if(!titleVal) { alert("Lütfen en azından kitap adını girin."); return; }
 
@@ -140,7 +137,7 @@ manualSaveBtn.addEventListener('click', () => {
     searchModal.style.display = 'none';
 });
 
-// ÇİFT MOTORLU ARAMA (Google + Open Library)
+// --- ÇİFT MOTORLU VE KADEMELİ ARAMA (Fallback Search) ---
 document.getElementById('advancedSearchForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const t = document.getElementById('sTitle').value.trim();
@@ -151,23 +148,14 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
     loadingText.style.display = 'block';
     apiResultsDiv.innerHTML = '';
 
-    let queryStr = t;
-    if(a) queryStr += " " + a;
-    if(p) queryStr += " " + p;
-    if(y) queryStr += " " + y;
-
-    let googleUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(queryStr)}&maxResults=10`;
-    let openLibUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(queryStr)}&limit=10`;
-
-    try {
-        const [googleRes, openLibRes] = await Promise.allSettled([
-            fetch(googleUrl),
-            fetch(openLibUrl)
-        ]);
-
+    // API'leri çağıran yardımcı fonksiyon
+    async function fetchResults(queryStr) {
+        let googleUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(queryStr)}&maxResults=15`;
+        let openLibUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(queryStr)}&limit=15`;
+        
+        const [googleRes, openLibRes] = await Promise.allSettled([ fetch(googleUrl), fetch(openLibUrl) ]);
         let results = [];
 
-        // 1. Google Sonuçlarını Ayıkla
         if (googleRes.status === 'fulfilled' && googleRes.value.ok) {
             const gData = await googleRes.value.json();
             if (gData.items) {
@@ -185,7 +173,6 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
             }
         }
 
-        // 2. Open Library Sonuçlarını Ayıkla
         if (openLibRes.status === 'fulfilled' && openLibRes.value.ok) {
             const oData = await openLibRes.value.json();
             if (oData.docs) {
@@ -201,16 +188,44 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
                 });
             }
         }
+        return results;
+    }
+
+    try {
+        // 1. Aşama: Senin yazdığın tüm detaylarla (Yayınevi, Yıl vs.) tam arama
+        let exactQuery = t;
+        if(a) exactQuery += " " + a;
+        if(p) exactQuery += " " + p;
+        if(y) exactQuery += " " + y;
+
+        let results = await fetchResults(exactQuery);
+
+        // 2. Aşama (Fallback): Detaylı arama sıfır çekerse, SADECE kitap adıyla geniş arama yap
+        if (results.length === 0 && (a || p || y)) {
+            results = await fetchResults(t);
+            if (results.length > 0) {
+                const infoDiv = document.createElement('div');
+                infoDiv.style.backgroundColor = "var(--badge-sirada)";
+                infoDiv.style.color = "#000";
+                infoDiv.style.padding = "8px";
+                infoDiv.style.borderRadius = "6px";
+                infoDiv.style.fontSize = "12px";
+                infoDiv.style.fontWeight = "bold";
+                infoDiv.style.marginBottom = "10px";
+                infoDiv.innerText = "⚠️ Yayınevi/Yıl eşleşmesi bulunamadı. Sadece kitap adıyla bulunan global kapaklar listeleniyor:";
+                apiResultsDiv.appendChild(infoDiv);
+            }
+        }
 
         loadingText.style.display = 'none';
 
         if (results.length === 0) {
-            apiResultsDiv.innerHTML = '<p>Her iki veritabanında da sonuç bulunamadı. Lütfen "Sadece Yazdıklarımı Kaydet" butonunu kullanın.</p>';
+            apiResultsDiv.innerHTML = '<p>Hiçbir sonuç bulunamadı. Lütfen "Sadece Yazdıklarımı Kaydet" butonunu kullanın.</p>';
             return;
         }
 
-        // 3. Sonuçları Ekrana Bas
-        results.slice(0, 15).forEach(doc => {
+        // Sonuçları Ekrana Bas
+        results.slice(0, 20).forEach(doc => {
             const resultDiv = document.createElement('div');
             resultDiv.style.border = "1px solid var(--border-color)";
             resultDiv.style.padding = "10px";
@@ -232,8 +247,9 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
                     if(bookIndex !== -1) {
                         library[bookIndex].title = doc.title;
                         library[bookIndex].author = doc.author;
-                        library[bookIndex].publisher = doc.publisher;
-                        library[bookIndex].year = doc.year;
+                        // Yalnızca kullanıcı yeni yayınevi veya yıl belirtmediyse API'den geleni kullan
+                        library[bookIndex].publisher = p ? p : doc.publisher; 
+                        library[bookIndex].year = y ? y : doc.year;
                         if(doc.lang) library[bookIndex].lang = doc.lang;
                         if(doc.cover) library[bookIndex].cover = doc.cover;
                     }
@@ -242,8 +258,9 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
                         id: Date.now(),
                         title: doc.title,
                         author: doc.author,
-                        publisher: doc.publisher,
-                        year: doc.year,
+                        // Kullanıcı formda yayınevi girdiyse, API'den geleni ezip kullanıcının yazdığını kaydet
+                        publisher: p ? p : doc.publisher,
+                        year: y ? y : doc.year,
                         lang: doc.lang,
                         status: 'okunmadi',
                         cover: doc.cover
@@ -283,7 +300,7 @@ document.getElementById('scanBarcodeBtn').addEventListener('click', () => {
                 document.getElementById('advancedSearchForm').reset();
                 document.getElementById('sTitle').value = decodedText;
                 searchModal.style.display = 'block';
-                document.getElementById('searchApiBtn').click();
+                document.getElementById('advancedSearchForm').dispatchEvent(new Event('submit'));
             });
         },
         () => {}
