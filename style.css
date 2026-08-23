@@ -1,10 +1,10 @@
 /* Renk Paleti ve Karanlık Mod Uyumu */
 :root {
-    --bg-color: #f7f5f0; /* Kırık beyaz / krem */
-    --text-color: #2d3436; /* Yumuşak koyu gri */
+    --bg-color: #f7f5f0;
+    --text-color: #2d3436;
     --card-bg: #ffffff;
     --border-color: #dfe6e9;
-    --accent-color: #6c5ce7; /* Pastel mor */
+    --accent-color: #6c5ce7;
     --badge-okundu: #55efc4;
     --badge-sirada: #ffeaa7;
     --badge-okunmadi: #ff7675;
@@ -12,8 +12,8 @@
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg-color: #1a1a1a; /* Zifiri olmayan antrasit */
-        --text-color: #e0e0e0; /* Göz yormayan beyaz */
+        --bg-color: #1a1a1a;
+        --text-color: #e0e0e0;
         --card-bg: #2d2d2d;
         --border-color: #404040;
         --accent-color: #a29bfe;
@@ -67,7 +67,6 @@ input, select {
     min-width: 150px;
 }
 
-/* Katlanabilir ve Mobil Ekranlar İçin Esnek Izgara (Grid) */
 .grid-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -135,7 +134,8 @@ input, select {
     cursor: pointer;
     box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
-/* Modal (Pop-up) Tasarımı */
+
+/* Modal (Pop-up) Tasarımı - KAYDIRMA EKLENDİ */
 .modal {
     display: none;
     position: fixed;
@@ -144,21 +144,24 @@ input, select {
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(4px);
+    overflow-y: auto; /* Pencere dışı taşmalarda kaydırma */
+    padding: 20px 0;
 }
 
 .modal-content {
     background-color: var(--card-bg);
-    margin: 40% auto;
+    margin: 5% auto; /* Yukarı çekildi */
     padding: 20px;
     border: 1px solid var(--border-color);
     border-radius: 16px;
-    width: 85%;
-    max-width: 400px;
+    width: 90%;
+    max-width: 450px;
     position: relative;
-    text-align: center;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    max-height: 85vh; /* Ekrana sığma limiti */
+    overflow-y: auto; /* İçerik taşarsa içeriden kaydırma */
 }
 
 .close-btn {
