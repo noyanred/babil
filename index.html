@@ -11,14 +11,12 @@
         <h1>Kütüphanem</h1>
         <div class="controls">
             <input type="text" id="searchInput" placeholder="Kitap, yazar veya not ara...">
-            
             <select id="statusFilter">
                 <option value="all">Tümü</option>
                 <option value="okundu">Okundu</option>
                 <option value="sirada">Sırada</option>
                 <option value="okunmadi">Okunmadı</option>
             </select>
-
             <select id="sortFilter">
                 <option value="date-desc">Eklenme Tarihi (Yeni-Eski)</option>
                 <option value="pages-asc">Sayfa (Azdan Çoğa)</option>
@@ -28,45 +26,68 @@
         </div>
     </header>
 
-    <main id="library-grid" class="grid-container">
-        <!-- Kitaplar buraya JavaScript ile otomatik eklenecek -->
-    </main>
+    <main id="library-grid" class="grid-container"></main>
 
-    <!-- Sağ Alt Köşedeki Hızlı İşlem Butonu -->
     <button class="fab-btn" id="addBookBtn">+</button>
 
-    <!-- Kitap Ekleme Pop-up'ı -->
+    <!-- 1. KİTAP DETAY, DÜZENLE VE SİL PENCERESİ -->
+    <div id="bookModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeModal">&times;</span>
+            <div class="modal-header">
+                <img id="modalCover" class="modal-cover" src="" alt="Kapak">
+                <div class="modal-info">
+                    <h2 id="modalTitle">Kitap Adı</h2>
+                    <p id="modalAuthor" class="modal-author">Yazar Adı</p>
+                    <span id="modalStatus" class="status-badge">Durum</span>
+                </div>
+            </div>
+            <div class="modal-body">
+                <p><strong>Yıl:</strong> <span id="modalYear">-</span></p>
+                <p><strong>Dil:</strong> <span id="modalLang">-</span></p>
+                
+                <div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <select id="editStatusSelect" style="flex: 1;">
+                        <option value="okunmadi">Okunmadı</option>
+                        <option value="sirada">Sırada</option>
+                        <option value="okundu">Okundu</option>
+                    </select>
+                    <button id="updateStatusBtn" class="action-btn" style="margin-top: 0; background-color: var(--badge-okundu); color: #000;">Durumu Güncelle</button>
+                </div>
+                <button id="deleteBookBtn" class="action-btn" style="background-color: #ff7675; color: #000; margin-top: 10px;">🗑️ Kütüphaneden Sil</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. İLK TERCİH MENÜSÜ (+ Butonu) -->
     <div id="addModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" id="closeAddModal">&times;</span>
             <h2 style="margin-bottom: 15px;">Yeni Kitap Ekle</h2>
             <div style="display: flex; flex-direction: column; gap: 10px; align-items: center;">
                 <button id="scanBarcodeBtn" class="action-btn">📷 Barkod Okut</button>
-                <button id="manualAddBtn" class="action-btn">✍️ Elle Ekle</button>
+                <button id="manualAddBtn" class="action-btn">🔍 Akıllı Arama (Elle)</button>
             </div>
             <div id="reader" style="width: 100%; margin-top: 15px; display: none;"></div>
         </div>
     </div>
-    <!-- Elle Kitap Ekleme Formu Pop-up'ı -->
+
+    <!-- 3. AKILLI ARAMA PENCERESİ (Open Library Entegrasyonu) -->
     <div id="manualAddModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" id="closeManualAddModal">&times;</span>
-            <h2 style="margin-bottom: 15px;">Kitap Bilgilerini Girin</h2>
-            <form id="manualAddForm" style="display: flex; flex-direction: column; gap: 10px;">
-                <input type="text" id="newBookTitle" placeholder="Kitap Adı" required>
-                <input type="text" id="newBookAuthor" placeholder="Yazar Adı" required>
-                <input type="number" id="newBookPages" placeholder="Sayfa Sayısı">
-                <select id="newBookStatus">
-                    <option value="okunmadi">Okunmadı</option>
-                    <option value="sirada">Sırada</option>
-                    <option value="okundu">Okundu</option>
-                </select>
-                <button type="submit" class="action-btn" style="background-color: var(--badge-okundu); color: #000;">Kaydet</button>
+            <h2 style="margin-bottom: 15px;">İnternette Kitap Ara</h2>
+            <form id="manualSearchForm" style="display: flex; flex-direction: column; gap: 10px;">
+                <input type="text" id="searchQueryInput" placeholder="Örn: Berserk 1 veya Kentaro Miura" required>
+                <button type="submit" class="action-btn" id="searchApiBtn">Dünya Veritabanında Ara</button>
             </form>
+            <div id="loadingText" style="display: none; margin-top: 15px; font-weight: bold;">Aranıyor... Lütfen bekleyin.</div>
+            <div id="apiResults" style="margin-top: 15px; max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                <!-- API sonuçları buraya listelenecek -->
+            </div>
         </div>
     </div>
 
-    <!-- Barkod Okuyucu Kütüphanesi -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script src="app.js"></script>
 </body>
