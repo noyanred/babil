@@ -35,9 +35,6 @@
     <!-- Sağ Alt Köşedeki Hızlı İşlem Butonu -->
     <button class="fab-btn" id="addBookBtn">+</button>
 
-    <script src="app.js"></script>
-</body>
-</html>
     <!-- Kitap Ekleme Pop-up'ı -->
     <div id="addModal" class="modal">
         <div class="modal-content">
@@ -47,7 +44,12 @@
                 <button id="scanBarcodeBtn" class="action-btn">📷 Barkod Okut</button>
                 <button id="manualAddBtn" class="action-btn">✍️ Elle Ekle</button>
             </div>
-            <!-- İleride kamera görüntüsü buraya gelecek -->
             <div id="reader" style="width: 100%; margin-top: 15px; display: none;"></div>
         </div>
     </div>
+
+    <!-- Barkod Okuyucu Kütüphanesi -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="app.js"></script>
+</body>
+</html>
