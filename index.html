@@ -47,6 +47,24 @@
             <div id="reader" style="width: 100%; margin-top: 15px; display: none;"></div>
         </div>
     </div>
+    <!-- Elle Kitap Ekleme Formu Pop-up'ı -->
+    <div id="manualAddModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeManualAddModal">&times;</span>
+            <h2 style="margin-bottom: 15px;">Kitap Bilgilerini Girin</h2>
+            <form id="manualAddForm" style="display: flex; flex-direction: column; gap: 10px;">
+                <input type="text" id="newBookTitle" placeholder="Kitap Adı" required>
+                <input type="text" id="newBookAuthor" placeholder="Yazar Adı" required>
+                <input type="number" id="newBookPages" placeholder="Sayfa Sayısı">
+                <select id="newBookStatus">
+                    <option value="okunmadi">Okunmadı</option>
+                    <option value="sirada">Sırada</option>
+                    <option value="okundu">Okundu</option>
+                </select>
+                <button type="submit" class="action-btn" style="background-color: var(--badge-okundu); color: #000;">Kaydet</button>
+            </form>
+        </div>
+    </div>
 
     <!-- Barkod Okuyucu Kütüphanesi -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
