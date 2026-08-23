@@ -1,11 +1,19 @@
-let library = [
-    { id: 1, title: "Dune", author: "Frank Herbert", publisher: "İthaki", status: "okundu", year: 1965, lang: "tur", cover: "https://covers.openlibrary.org/b/id/10543665-M.jpg" }
+// --- HAFIZA SİSTEMİ (Local Storage) ---
+// Eğer hafıza boşsa, test amaçlı Dune kitabını koy, yoksa hafızadakileri getir.
+let library = JSON.parse(localStorage.getItem('myKutuphane')) || [
+    { id: 1, title: "Dune", author: "Frank Herbert", publisher: "İthaki", status: "okundu", year: 1965, lang: "tr", cover: "https://covers.openlibrary.org/b/id/10543665-M.jpg" }
 ];
+
+// Her değişiklikte hafızayı güncelleyen komut
+function saveLibrary() {
+    localStorage.setItem('myKutuphane', JSON.stringify(library));
+}
 
 const gridContainer = document.getElementById('library-grid');
 let currentActiveBookId = null; 
-let editingBookId = null; // Düzenleme modunda mıyız kontrolü
+let editingBookId = null; 
 
+// --- KÜTÜPHANEYİ ÇİZ ---
 function renderLibrary(books) {
     gridContainer.innerHTML = '';
     books.forEach(book => {
@@ -14,7 +22,7 @@ function renderLibrary(books) {
         let badgeColor = `var(--badge-${book.status})`;
         let statusText = book.status === 'okunmadi' ? 'Okunmadı' : book.status.charAt(0).toUpperCase() + book.status.slice(1);
         
-        let coverImg = book.cover ? `<img src="${book.cover}" class="book-cover">` : `<div class="book-cover" style="display:flex; align-items:center; justify-content:center; font-size:10px;">Görsel Yok</div>`;
+        let coverImg = book.cover ? `<img src="${book.cover}" class="book-cover">` : `<div class="book-cover" style="display:flex; align-items:center; justify-content:center; font-size:10px; background:#404040;">Görsel Yok</div>`;
 
         card.innerHTML = `
             ${coverImg}
@@ -55,18 +63,22 @@ document.getElementById('updateStatusBtn').addEventListener('click', () => {
     const bookIndex = library.findIndex(b => b.id === currentActiveBookId);
     if(bookIndex !== -1) {
         library[bookIndex].status = newStatus;
+        saveLibrary(); // HAFIZAYA KAYDET
         renderLibrary(library);
         bookModal.style.display = 'none';
     }
 });
 
 document.getElementById('deleteBookBtn').addEventListener('click', () => {
-    library = library.filter(b => b.id !== currentActiveBookId);
-    renderLibrary(library);
-    bookModal.style.display = 'none';
+    if(confirm("Bu kitabı kütüphaneden silmek istediğine emin misin?")) {
+        library = library.filter(b => b.id !== currentActiveBookId);
+        saveLibrary(); // HAFIZAYA KAYDET
+        renderLibrary(library);
+        bookModal.style.display = 'none';
+    }
 });
 
-// --- GELİŞMİŞ ARAMA VE DÜZENLEME (API) ---
+// --- GELİŞMİŞ ARAMA VE DÜZENLEME (GOOGLE BOOKS API) ---
 const searchModal = document.getElementById('searchModal');
 const apiResultsDiv = document.getElementById('apiResults');
 const loadingText = document.getElementById('loadingText');
@@ -78,8 +90,6 @@ document.getElementById('manualAddBtn').addEventListener('click', () => {
     editingBookId = null; 
     document.getElementById('searchModalTitle').innerText = "Yeni Kitap Ara / Ekle";
     document.getElementById('advancedSearchForm').reset();
-    manualSaveBtn.style.display = 'none';
-    document.getElementById('searchApiBtn').innerText = "Dünya Veritabanında Ara";
     apiResultsDiv.innerHTML = '';
     searchModal.style.display = 'block';
 });
@@ -96,86 +106,99 @@ document.getElementById('editBookBtn').addEventListener('click', () => {
     document.getElementById('sPublisher').value = book.publisher || "";
     document.getElementById('sYear').value = book.year || "";
     
-    manualSaveBtn.style.display = 'block';
-    document.getElementById('searchApiBtn').innerText = "Bu Bilgilerle API'den Doğrusunu Bul";
     apiResultsDiv.innerHTML = '';
     searchModal.style.display = 'block';
 });
 
 document.getElementById('closeSearchModal').addEventListener('click', () => searchModal.style.display = 'none');
 
-// Manuel Olarak Formdaki Bilgileri Kaydet (API'siz)
+// Manuel Olarak Formdaki Bilgileri Kaydet (API'siz zorla kaydetme)
 manualSaveBtn.addEventListener('click', () => {
+    const titleVal = document.getElementById('sTitle').value.trim();
+    if(!titleVal) { alert("Lütfen en azından kitap adını girin."); return; }
+
     if(editingBookId) {
         const bookIndex = library.findIndex(b => b.id === editingBookId);
         if(bookIndex !== -1) {
-            library[bookIndex].title = document.getElementById('sTitle').value;
+            library[bookIndex].title = titleVal;
             library[bookIndex].author = document.getElementById('sAuthor').value;
             library[bookIndex].publisher = document.getElementById('sPublisher').value;
             library[bookIndex].year = document.getElementById('sYear').value;
-            renderLibrary(library);
-            searchModal.style.display = 'none';
         }
+    } else {
+        library.unshift({
+            id: Date.now(),
+            title: titleVal,
+            author: document.getElementById('sAuthor').value,
+            publisher: document.getElementById('sPublisher').value,
+            year: document.getElementById('sYear').value,
+            lang: "",
+            status: 'okunmadi',
+            cover: ""
+        });
     }
+    saveLibrary(); // HAFIZAYA KAYDET
+    renderLibrary(library);
+    searchModal.style.display = 'none';
 });
 
-// API Üzerinden Arama
+// Google Books API Üzerinden Arama
 document.getElementById('advancedSearchForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const t = document.getElementById('sTitle').value.trim();
     const a = document.getElementById('sAuthor').value.trim();
     const p = document.getElementById('sPublisher').value.trim();
-    const y = document.getElementById('sYear').value.trim();
-
+    
     loadingText.style.display = 'block';
     apiResultsDiv.innerHTML = '';
 
-    let queryUrl = `https://openlibrary.org/search.json?`;
-    let params = [];
-    if(t) params.push(`title=${encodeURIComponent(t)}`);
-    if(a) params.push(`author=${encodeURIComponent(a)}`);
-    if(p) params.push(`publisher=${encodeURIComponent(p)}`);
-    if(y) params.push(`first_publish_year=${encodeURIComponent(y)}`);
+    // Google API için arama dizesi oluşturma
+    let queryStr = t;
+    if(a) queryStr += " " + a;
+    if(p) queryStr += " " + p;
 
-    // Sadece başlık girildiyse geniş arama yap (barkod okumalarında daha iyi sonuç verir)
-    if (params.length === 1 && t) {
-        queryUrl += `q=${encodeURIComponent(t)}&limit=10`;
-    } else {
-        queryUrl += params.join('&') + `&limit=10`;
-    }
+    let queryUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(queryStr)}&maxResults=10`;
 
     try {
         const response = await fetch(queryUrl);
         const data = await response.json();
         loadingText.style.display = 'none';
 
-        if(data.docs.length === 0) {
-            apiResultsDiv.innerHTML = '<p>Sonuç bulunamadı. Lütfen filtreleri azaltarak veya yazar adıyla aramayı deneyin.</p>';
+        if(!data.items || data.items.length === 0) {
+            apiResultsDiv.innerHTML = '<p>Sonuç bulunamadı. Filtreleri azaltmayı deneyin veya "Sadece Yazdıklarımı Kaydet" butonunu kullanın.</p>';
             return;
         }
 
-        data.docs.forEach(doc => {
-            const title = doc.title;
-            const author = doc.author_name ? doc.author_name[0] : "";
-            const publisher = doc.publisher ? doc.publisher[0] : "";
-            const year = doc.first_publish_year || "";
-            const lang = doc.language ? doc.language[0] : "";
-            const coverId = doc.cover_i;
-            const coverUrl = coverId ? `https://covers.openlibrary.org/b/id/${coverId}-M.jpg` : "";
+        data.items.forEach(item => {
+            const doc = item.volumeInfo;
+            const title = doc.title || "İsimsiz";
+            const author = doc.authors ? doc.authors.join(", ") : "";
+            const publisher = doc.publisher || "";
+            const year = doc.publishedDate ? doc.publishedDate.substring(0, 4) : "";
+            const lang = doc.language || "";
+            let coverUrl = "";
+            if (doc.imageLinks) {
+                coverUrl = doc.imageLinks.thumbnail || doc.imageLinks.smallThumbnail || "";
+                coverUrl = coverUrl.replace("http:", "https:"); // Güvenlik uyarısını önlemek için
+            }
 
             const resultDiv = document.createElement('div');
             resultDiv.style.border = "1px solid var(--border-color)";
             resultDiv.style.padding = "10px";
             resultDiv.style.borderRadius = "8px";
             resultDiv.innerHTML = `
-                <div style="font-weight:bold; font-size:14px;">${title}</div>
-                <div style="font-size:12px; opacity:0.8; margin-bottom:5px;">Yazar: ${author} | Yayınevi: ${publisher} | Yıl: ${year} | Dil: ${lang.toUpperCase()}</div>
-                <button class="action-btn" style="padding:8px; font-size:14px;">${editingBookId ? "Bununla Güncelle" : "Bunu Kütüphaneye Ekle"}</button>
+                <div style="display:flex; gap:10px;">
+                    ${coverUrl ? `<img src="${coverUrl}" style="width:50px; height:75px; object-fit:cover; border-radius:4px;">` : `<div style="width:50px; height:75px; background:#404040; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:9px;">Yok</div>`}
+                    <div style="flex:1;">
+                        <div style="font-weight:bold; font-size:14px;">${title}</div>
+                        <div style="font-size:12px; opacity:0.8; margin-bottom:5px;">Yazar: ${author} | Yayınevi: ${publisher} | Yıl: ${year}</div>
+                        <button class="action-btn" style="padding:6px; font-size:12px; margin:0;">${editingBookId ? "Bununla Güncelle" : "Bunu Kütüphaneye Ekle"}</button>
+                    </div>
+                </div>
             `;
             
             resultDiv.querySelector('button').addEventListener('click', () => {
                 if (editingBookId) {
-                    // Mevcut kitabı güncelle
                     const bookIndex = library.findIndex(b => b.id === editingBookId);
                     if(bookIndex !== -1) {
                         library[bookIndex].title = title;
@@ -186,7 +209,6 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
                         if(coverUrl) library[bookIndex].cover = coverUrl;
                     }
                 } else {
-                    // Yeni kitap ekle
                     library.unshift({
                         id: Date.now(),
                         title: title,
@@ -198,6 +220,7 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
                         cover: coverUrl
                     });
                 }
+                saveLibrary(); // HAFIZAYA KAYDET
                 renderLibrary(library);
                 searchModal.style.display = 'none';
             });
@@ -226,12 +249,10 @@ document.getElementById('scanBarcodeBtn').addEventListener('click', () => {
                 readerDiv.style.display = 'none';
                 document.getElementById('addModal').style.display = 'none';
                 
-                // Okunan barkodu arama çubuğuna gönder ve otomatik API taraması başlat
                 editingBookId = null; 
                 document.getElementById('searchModalTitle').innerText = "Barkod Sonucu Aranıyor";
                 document.getElementById('advancedSearchForm').reset();
                 document.getElementById('sTitle').value = decodedText;
-                manualSaveBtn.style.display = 'none';
                 searchModal.style.display = 'block';
                 document.getElementById('searchApiBtn').click();
             });
@@ -240,12 +261,29 @@ document.getElementById('scanBarcodeBtn').addEventListener('click', () => {
     ).catch(() => alert("Kamera başlatılamadı."));
 });
 
-// --- PENCERE DIŞINA TIKLAYINCA KAPATMA ---
+// Arama Çubuğu
+document.getElementById('searchInput').addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    const filtered = library.filter(book => 
+        book.title.toLowerCase().includes(term) || 
+        (book.author && book.author.toLowerCase().includes(term))
+    );
+    renderLibrary(filtered);
+});
+
+// Filtreler
+document.getElementById('statusFilter').addEventListener('change', (e) => {
+    const val = e.target.value;
+    if(val === 'all') renderLibrary(library);
+    else renderLibrary(library.filter(book => book.status === val));
+});
+
+// PENCERE DIŞINA TIKLAYINCA KAPATMA
 window.addEventListener('click', (e) => {
     if (e.target === bookModal) bookModal.style.display = 'none';
     if (e.target === document.getElementById('addModal')) document.getElementById('addModal').style.display = 'none';
     if (e.target === searchModal) searchModal.style.display = 'none';
 });
 
-// İlk Yükleme
+// İLK YÜKLEME
 renderLibrary(library);
