@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kütüphane Asistanı</title>
+    <style>
+        :root {
+            --bg-color: #f7f5f0;
+            --text-color: #2d3436;
+            --card-bg: #ffffff;
+            --border-color: #dfe6e9;
+            --accent-color: #6c5ce7;
+            --badge-okundu: #55efc4;
+            --badge-sirada: #ffeaa7;
+            --badge-okunmadi: #ff7675;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1a1a;
+                --text-color: #e0e0e0;
+                --card-bg: #2d2d2d;
+                --border-color: #404040;
+                --accent-color: #a29bfe;
+                --badge-okundu: #00b894;
+                --badge-sirada: #fdcb6e;
+                --badge-okunmadi: #d63031;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+            padding-bottom: 80px;
+        }
+
+        .top-bar {
+            padding: 15px;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .top-bar h1 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        input, select {
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            outline: none;
+            flex: 1;
+            min-width: 130px;
+            font-size: 14px;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 15px;
+            padding: 15px;
+        }
+
+        .book-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .book-cover {
+            width: 100%;
+            aspect-ratio: 2/3;
+            background-color: var(--border-color);
+            border-radius: 6px;
+            object-fit: cover;
+            margin-bottom: 8px;
+        }
+
+        .book-title {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .book-author {
+            font-size: 11px;
+            opacity: 0.8;
+            margin-bottom: 8px;
+        }
+
+        .status-badge {
+            font-size: 10px;
+            padding: 3px 6px;
+            border-radius: 10px;
+            color: #000;
+            font-weight: bold;
+        }
+
+        .fab-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            font-size: 26px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            z-index: 200;
+        }
+    </style>
+</head>
+<body>
+    <header class="top-bar">
+        <h1>Kütüphanem</h1>
+        <div class="controls">
+            <input type="text" id="searchInput" placeholder="Kitap veya yazar ara...">
+            
+            <select id="statusFilter">
+                <option value="all">Tümü</option>
+                <option value="okundu">Okundu</option>
+                <option value="sirada">Sırada</option>
+                <option value="okunmadi">Okunmadı</option>
+            </select>
+        </div>
+    </header>
+
+    <main id="library-grid" class="grid-container">
+    </main>
+
+    <button class="fab-btn" id="addBookBtn">+</button>
+
+    <script>
+        let library = [
+            { id: 1, title: "Örnek Kitap 1", author: "Yazar Adı", status: "okundu" },
+            { id: 2, title: "Örnek Kitap 2", author: "Yazar Adı", status: "sirada" },
+            { id: 3, title: "Örnek Kitap 3", author: "Yazar Adı", status: "okunmadi" }
+        ];
+
+        const gridContainer = document.getElementById('library-grid');
+        
+        function renderLibrary(books) {
+            gridContainer.innerHTML = '';
+            books.forEach(book => {
+                const card = document.createElement('div');
+                card.className = 'book-card';
+                let badgeColor = `var(--badge-${book.status})`;
+                let statusText = book.status === 'okunmadi' ? 'Okunmadı' : book.status.charAt(0).toUpperCase() + book.status.slice(1);
+
+                card.innerHTML = `
+                    <div class="book-cover"></div>
+                    <div class="book-title">${book.title}</div>
+                    <div class="book-author">${book.author}</div>
+                    <div class="status-badge" style="background-color: ${badgeColor}">${statusText}</div>
+                `;
+                gridContainer.appendChild(card);
+            });
+        }
+
+        renderLibrary(library);
+    </script>
+</body>
+</html>
