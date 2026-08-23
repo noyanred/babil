@@ -17,12 +17,6 @@
                 <option value="sirada">Sırada</option>
                 <option value="okunmadi">Okunmadı</option>
             </select>
-            <select id="sortFilter">
-                <option value="date-desc">Eklenme Tarihi (Yeni-Eski)</option>
-                <option value="pages-asc">Sayfa (Azdan Çoğa)</option>
-                <option value="pages-desc">Sayfa (Çoktan Aza)</option>
-                <option value="year">Basım Yılı</option>
-            </select>
         </div>
     </header>
 
@@ -53,10 +47,9 @@
                         <option value="sirada">Sırada</option>
                         <option value="okundu">Okundu</option>
                     </select>
-                    <button id="updateStatusBtn" class="action-btn" style="margin-top: 0; background-color: var(--badge-okundu); color: #000;">Durumu Seç</button>
+                    <button id="updateStatusBtn" class="action-btn" style="margin-top: 0; background-color: var(--badge-okundu); color: #000;">Durumu Güncelle</button>
                 </div>
-                <!-- DÜZENLE VE SİL BUTONLARI -->
-                <button id="editBookBtn" class="action-btn" style="background-color: var(--badge-sirada); color: #000; margin-top: 10px;">✏️ Bilgileri Düzenle / API'den Güncelle</button>
+                <button id="editBookBtn" class="action-btn" style="background-color: var(--badge-sirada); color: #000; margin-top: 10px;">✏️ Bilgileri Düzenle / Güncelle</button>
                 <button id="deleteBookBtn" class="action-btn" style="background-color: #ff7675; color: #000; margin-top: 10px;">🗑️ Kütüphaneden Sil</button>
             </div>
         </div>
@@ -84,11 +77,12 @@
                 <input type="text" id="sTitle" placeholder="Kitap Adı / ISBN / Genel Arama (Zorunlu)" required>
                 <input type="text" id="sAuthor" placeholder="Yazar Adı (Opsiyonel)">
                 <div style="display: flex; gap: 10px;">
-                    <input type="text" id="sPublisher" placeholder="Yayınevi (Ops.)">
-                    <input type="number" id="sYear" placeholder="Yıl (Ops.)">
+                    <input type="text" id="sPublisher" placeholder="Yayınevi (Ops.)" style="width: 50%;">
+                    <input type="number" id="sYear" placeholder="Yıl (Ops.)" style="width: 50%;">
                 </div>
-                <button type="submit" class="action-btn" id="searchApiBtn">Dünya Veritabanında Ara</button>
-                <button type="button" class="action-btn" id="manualSaveBtn" style="background-color: var(--badge-okundu); color: #000; display: none;">Değişiklikleri Manuel Kaydet</button>
+                <button type="submit" class="action-btn" id="searchApiBtn">🌍 Google Veritabanında Ara</button>
+                <div style="font-size: 12px; margin-top: 5px; opacity: 0.8;">Veya aratmadan doğrudan kaydet:</div>
+                <button type="button" class="action-btn" id="manualSaveBtn" style="background-color: var(--badge-okundu); color: #000; margin-top: 0;">💾 Sadece Yazdıklarımı Kaydet</button>
             </form>
             <div id="loadingText" style="display: none; margin-top: 15px; font-weight: bold;">Aranıyor...</div>
             <div id="apiResults" style="margin-top: 15px; max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; text-align: left;"></div>
