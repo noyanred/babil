@@ -1,0 +1,137 @@
+/* Renk Paleti ve Karanlık Mod Uyumu */
+:root {
+    --bg-color: #f7f5f0; /* Kırık beyaz / krem */
+    --text-color: #2d3436; /* Yumuşak koyu gri */
+    --card-bg: #ffffff;
+    --border-color: #dfe6e9;
+    --accent-color: #6c5ce7; /* Pastel mor */
+    --badge-okundu: #55efc4;
+    --badge-sirada: #ffeaa7;
+    --badge-okunmadi: #ff7675;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: #1a1a1a; /* Zifiri olmayan antrasit */
+        --text-color: #e0e0e0; /* Göz yormayan beyaz */
+        --card-bg: #2d2d2d;
+        --border-color: #404040;
+        --accent-color: #a29bfe;
+        --badge-okundu: #00b894;
+        --badge-sirada: #fdcb6e;
+        --badge-okunmadi: #d63031;
+    }
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.top-bar {
+    padding: 20px;
+    background-color: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.top-bar h1 {
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+input, select {
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    outline: none;
+    flex: 1;
+    min-width: 150px;
+}
+
+/* Katlanabilir ve Mobil Ekranlar İçin Esnek Izgara (Grid) */
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 20px;
+    padding: 20px;
+}
+
+.book-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px;
+    cursor: pointer;
+    transition: transform 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.book-card:hover {
+    transform: translateY(-5px);
+}
+
+.book-cover {
+    width: 100%;
+    aspect-ratio: 2/3;
+    background-color: var(--border-color);
+    border-radius: 6px;
+    object-fit: cover;
+    margin-bottom: 10px;
+}
+
+.book-title {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.book-author {
+    font-size: 12px;
+    opacity: 0.8;
+    margin-bottom: 10px;
+}
+
+.status-badge {
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    color: #000;
+    font-weight: bold;
+}
+
+.fab-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    font-size: 30px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
