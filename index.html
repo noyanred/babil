@@ -10,7 +10,7 @@
     <header class="top-bar">
         <h1>Kütüphanem</h1>
         <div class="controls">
-            <input type="text" id="searchInput" placeholder="Kitap, yazar veya not ara...">
+            <input type="text" id="searchInput" placeholder="Kitap veya yazar ara...">
             <select id="statusFilter">
                 <option value="all">Tümü</option>
                 <option value="okundu">Okundu</option>
@@ -30,7 +30,7 @@
 
     <button class="fab-btn" id="addBookBtn">+</button>
 
-    <!-- 1. KİTAP DETAY, DÜZENLE VE SİL PENCERESİ -->
+    <!-- 1. KİTAP DETAY VE DURUM GÜNCELLEME PENCERESİ -->
     <div id="bookModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" id="closeModal">&times;</span>
@@ -43,17 +43,20 @@
                 </div>
             </div>
             <div class="modal-body">
+                <p><strong>Yayınevi:</strong> <span id="modalPublisher">-</span></p>
                 <p><strong>Yıl:</strong> <span id="modalYear">-</span></p>
                 <p><strong>Dil:</strong> <span id="modalLang">-</span></p>
                 
-                <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <div style="margin-top: 15px; display: flex; gap: 10px;">
                     <select id="editStatusSelect" style="flex: 1;">
                         <option value="okunmadi">Okunmadı</option>
                         <option value="sirada">Sırada</option>
                         <option value="okundu">Okundu</option>
                     </select>
-                    <button id="updateStatusBtn" class="action-btn" style="margin-top: 0; background-color: var(--badge-okundu); color: #000;">Durumu Güncelle</button>
+                    <button id="updateStatusBtn" class="action-btn" style="margin-top: 0; background-color: var(--badge-okundu); color: #000;">Durumu Seç</button>
                 </div>
+                <!-- DÜZENLE VE SİL BUTONLARI -->
+                <button id="editBookBtn" class="action-btn" style="background-color: var(--badge-sirada); color: #000; margin-top: 10px;">✏️ Bilgileri Düzenle / API'den Güncelle</button>
                 <button id="deleteBookBtn" class="action-btn" style="background-color: #ff7675; color: #000; margin-top: 10px;">🗑️ Kütüphaneden Sil</button>
             </div>
         </div>
@@ -64,27 +67,31 @@
         <div class="modal-content">
             <span class="close-btn" id="closeAddModal">&times;</span>
             <h2 style="margin-bottom: 15px;">Yeni Kitap Ekle</h2>
-            <div style="display: flex; flex-direction: column; gap: 10px; align-items: center;">
+            <div style="display: flex; flex-direction: column; gap: 10px;">
                 <button id="scanBarcodeBtn" class="action-btn">📷 Barkod Okut</button>
-                <button id="manualAddBtn" class="action-btn">🔍 Akıllı Arama (Elle)</button>
+                <button id="manualAddBtn" class="action-btn">🔍 Gelişmiş Arama / Elle Ekle</button>
             </div>
             <div id="reader" style="width: 100%; margin-top: 15px; display: none;"></div>
         </div>
     </div>
 
-    <!-- 3. AKILLI ARAMA PENCERESİ (Open Library Entegrasyonu) -->
-    <div id="manualAddModal" class="modal">
+    <!-- 3. GELİŞMİŞ ARAMA VE DÜZENLEME PENCERESİ -->
+    <div id="searchModal" class="modal">
         <div class="modal-content">
-            <span class="close-btn" id="closeManualAddModal">&times;</span>
-            <h2 style="margin-bottom: 15px;">İnternette Kitap Ara</h2>
-            <form id="manualSearchForm" style="display: flex; flex-direction: column; gap: 10px;">
-                <input type="text" id="searchQueryInput" placeholder="Örn: Berserk 1 veya Kentaro Miura" required>
+            <span class="close-btn" id="closeSearchModal">&times;</span>
+            <h2 id="searchModalTitle" style="margin-bottom: 15px;">İnternette Kitap Ara</h2>
+            <form id="advancedSearchForm" style="display: flex; flex-direction: column; gap: 10px;">
+                <input type="text" id="sTitle" placeholder="Kitap Adı / ISBN / Genel Arama (Zorunlu)" required>
+                <input type="text" id="sAuthor" placeholder="Yazar Adı (Opsiyonel)">
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="sPublisher" placeholder="Yayınevi (Ops.)">
+                    <input type="number" id="sYear" placeholder="Yıl (Ops.)">
+                </div>
                 <button type="submit" class="action-btn" id="searchApiBtn">Dünya Veritabanında Ara</button>
+                <button type="button" class="action-btn" id="manualSaveBtn" style="background-color: var(--badge-okundu); color: #000; display: none;">Değişiklikleri Manuel Kaydet</button>
             </form>
-            <div id="loadingText" style="display: none; margin-top: 15px; font-weight: bold;">Aranıyor... Lütfen bekleyin.</div>
-            <div id="apiResults" style="margin-top: 15px; max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
-                <!-- API sonuçları buraya listelenecek -->
-            </div>
+            <div id="loadingText" style="display: none; margin-top: 15px; font-weight: bold;">Aranıyor...</div>
+            <div id="apiResults" style="margin-top: 15px; max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; text-align: left;"></div>
         </div>
     </div>
 
