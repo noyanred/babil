@@ -45,3 +45,24 @@ searchInput.addEventListener('input', (e) => {
 
 // İlk açılışta test kitaplarını göster
 renderLibrary(library);
+// Ekleme Butonu (FAB) ve Modal İşlemleri
+const addBookBtn = document.getElementById('addBookBtn');
+const addModal = document.getElementById('addModal');
+const closeAddModal = document.getElementById('closeAddModal');
+
+// + Butonuna tıklayınca menüyü aç
+addBookBtn.addEventListener('click', () => {
+    addModal.style.display = 'block';
+});
+
+// Çarpıya basınca kapat
+closeAddModal.addEventListener('click', () => {
+    addModal.style.display = 'none';
+});
+
+// Pencere dışına (boşluğa) tıklayınca kapat
+window.addEventListener('click', (e) => {
+    if (e.target === addModal) {
+        addModal.style.display = 'none';
+    }
+});
