@@ -1,4 +1,3 @@
-// --- HAFIZA SİSTEMİ (Local Storage) ---
 let library = JSON.parse(localStorage.getItem('myKutuphane')) || [
     { id: 1, title: "Dune", author: "Frank Herbert", publisher: "İthaki", status: "okundu", year: 1965, lang: "tr", cover: "https://covers.openlibrary.org/b/id/10543665-M.jpg" }
 ];
@@ -11,7 +10,6 @@ const gridContainer = document.getElementById('library-grid');
 let currentActiveBookId = null; 
 let editingBookId = null; 
 
-// --- KÜTÜPHANEYİ ÇİZ ---
 function renderLibrary(books) {
     gridContainer.innerHTML = '';
     books.forEach(book => {
@@ -33,7 +31,6 @@ function renderLibrary(books) {
     });
 }
 
-// --- KİTAP DETAY, DURUM VE SİL ---
 const bookModal = document.getElementById('bookModal');
 function openBookDetails(book) {
     currentActiveBookId = book.id;
@@ -82,7 +79,6 @@ document.getElementById('deleteBookBtn').addEventListener('click', () => {
     }
 });
 
-// --- GELİŞMİŞ ARAMA VE DÜZENLEME ---
 const searchModal = document.getElementById('searchModal');
 const apiResultsDiv = document.getElementById('apiResults');
 const loadingText = document.getElementById('loadingText');
@@ -145,7 +141,7 @@ document.getElementById('manualSaveBtn').addEventListener('click', () => {
     searchModal.style.display = 'none';
 });
 
-// --- ÇİFT MOTORLU VE KADEMELİ ARAMA (Sorgu Güçlendirici ile) ---
+// --- 3 KADEMELİ ARAMA (TAM ÇÖZÜM) ---
 document.getElementById('advancedSearchForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const t = document.getElementById('sTitle').value.trim();
@@ -157,16 +153,10 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
     loadingText.style.display = 'block';
     apiResultsDiv.innerHTML = '';
 
-    // API'leri çağıran yardımcı fonksiyon
-    async function fetchResults(queryStr, langCode) {
-        // Eksik etiketleri aşmak için dili arama anahtar kelimesi olarak zorla
-        let boostedQuery = queryStr;
-        if (langCode === 'tr') boostedQuery += " Türkçe";
-        if (langCode === 'en') boostedQuery += " English";
-        if (langCode === 'ja') boostedQuery += " Japonca";
-
-        let googleUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(boostedQuery)}&maxResults=15`;
-        let openLibUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(boostedQuery)}&limit=15`;
+    async function fetchResults(queryStr, useLangLimit) {
+        let googleUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(queryStr)}&maxResults=15`;
+        if (useLangLimit && l) googleUrl += `&langRestrict=${l}`;
+        let openLibUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(queryStr)}&limit=15`;
         
         const [googleRes, openLibRes] = await Promise.allSettled([ fetch(googleUrl), fetch(openLibUrl) ]);
         let results = [];
@@ -207,29 +197,27 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
     }
 
     try {
-        // 1. Aşama: Yazılan tüm detaylarla tam arama
+        // KADEME 1: Tüm filtrelerle arama
         let exactQuery = t;
         if(a) exactQuery += " " + a;
         if(p) exactQuery += " " + p;
         if(y) exactQuery += " " + y;
 
-        let results = await fetchResults(exactQuery, l);
+        let results = await fetchResults(exactQuery, true);
+        let infoMessage = "";
 
-        // 2. Aşama (Fallback): Detaylı arama sıfır çekerse, yayınevi/yıl kriterlerini silip geniş arama yap
-        if (results.length === 0 && (a || p || y)) {
-            results = await fetchResults(t, l);
-            if (results.length > 0) {
-                const infoDiv = document.createElement('div');
-                infoDiv.style.backgroundColor = "var(--badge-sirada)";
-                infoDiv.style.color = "#000";
-                infoDiv.style.padding = "8px";
-                infoDiv.style.borderRadius = "6px";
-                infoDiv.style.fontSize = "12px";
-                infoDiv.style.fontWeight = "bold";
-                infoDiv.style.marginBottom = "10px";
-                infoDiv.innerText = "⚠️ Yayınevi/Yıl eşleşmesi bulunamadı. Genel veritabanı sonuçları listeleniyor:";
-                apiResultsDiv.appendChild(infoDiv);
-            }
+        // KADEME 2: Eğer yayınevi/yıl/dil filtreleri yüzünden sonuç sıfırsa; SADECE Yazar ve Eser adıyla ara
+        if (results.length === 0 && (p || y || l)) {
+            let midQuery = t;
+            if(a) midQuery += " " + a;
+            results = await fetchResults(midQuery, false);
+            if (results.length > 0) infoMessage = "⚠️ Yayınevi, Yıl veya Dil uyuşmazlığı tespit edildi. Eser ve Yazar eşleşmeleri listeleniyor:";
+        }
+
+        // KADEME 3: Eğer Yazar yüzünden de sıfırsa; SADECE ESER ADI ile dünyayı tara
+        if (results.length === 0 && a) {
+            results = await fetchResults(t, false);
+            if (results.length > 0) infoMessage = "⚠️ Detaylarla eşleşme sağlanamadı. Sadece Eser adına ait sonuçlar listeleniyor:";
         }
 
         loadingText.style.display = 'none';
@@ -239,12 +227,27 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
             return;
         }
 
-        // Sonuçları Ekrana Bas
+        // Bilgilendirme mesajı varsa ekle
+        if (infoMessage) {
+            const infoDiv = document.createElement('div');
+            infoDiv.style.backgroundColor = "var(--badge-sirada)";
+            infoDiv.style.color = "#000";
+            infoDiv.style.padding = "8px";
+            infoDiv.style.borderRadius = "6px";
+            infoDiv.style.fontSize = "12px";
+            infoDiv.style.fontWeight = "bold";
+            infoDiv.style.marginBottom = "10px";
+            infoDiv.innerText = infoMessage;
+            apiResultsDiv.appendChild(infoDiv);
+        }
+
+        // Sonuçları Bas
         results.slice(0, 20).forEach(doc => {
             const resultDiv = document.createElement('div');
             resultDiv.style.border = "1px solid var(--border-color)";
             resultDiv.style.padding = "10px";
             resultDiv.style.borderRadius = "8px";
+            resultDiv.style.marginBottom = "10px";
             resultDiv.innerHTML = `
                 <div style="display:flex; gap:10px;">
                     ${doc.cover ? `<img src="${doc.cover}" style="width:50px; height:75px; object-fit:cover; border-radius:4px;">` : `<div style="width:50px; height:75px; background:#404040; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:9px;">Yok</div>`}
@@ -291,7 +294,6 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
     }
 });
 
-// --- MENÜ AÇMA VE BARKOD OKUYUCU ---
 document.getElementById('addBookBtn').addEventListener('click', () => document.getElementById('addModal').style.display = 'block');
 document.getElementById('closeAddModal').addEventListener('click', () => document.getElementById('addModal').style.display = 'none');
 
@@ -320,7 +322,6 @@ document.getElementById('scanBarcodeBtn').addEventListener('click', () => {
     ).catch(() => alert("Kamera başlatılamadı."));
 });
 
-// Arama Çubuğu
 document.getElementById('searchInput').addEventListener('input', (e) => {
     const term = e.target.value.toLowerCase();
     const filtered = library.filter(book => 
@@ -330,19 +331,16 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
     renderLibrary(filtered);
 });
 
-// Filtreler
 document.getElementById('statusFilter').addEventListener('change', (e) => {
     const val = e.target.value;
     if(val === 'all') renderLibrary(library);
     else renderLibrary(library.filter(book => book.status === val));
 });
 
-// PENCERE DIŞINA TIKLAYINCA KAPATMA
 window.addEventListener('click', (e) => {
     if (e.target === bookModal) bookModal.style.display = 'none';
     if (e.target === document.getElementById('addModal')) document.getElementById('addModal').style.display = 'none';
     if (e.target === searchModal) searchModal.style.display = 'none';
 });
 
-// İLK YÜKLEME
 renderLibrary(library);
