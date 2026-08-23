@@ -42,7 +42,6 @@ function openBookDetails(book) {
     document.getElementById('modalPublisher').innerText = book.publisher || "Bilinmiyor";
     document.getElementById('modalYear').innerText = book.year || "Bilinmiyor";
     
-    // Dil kodlarını okunur isme çevirme (Opsiyonel görsel iyileştirme)
     let displayLang = book.lang ? book.lang.toUpperCase() : "Bilinmiyor";
     if(book.lang === 'tr') displayLang = "Türkçe";
     if(book.lang === 'en') displayLang = "İngilizce";
@@ -108,7 +107,7 @@ document.getElementById('editBookBtn').addEventListener('click', () => {
     document.getElementById('sAuthor').value = book.author || "";
     document.getElementById('sPublisher').value = book.publisher || "";
     document.getElementById('sYear').value = book.year || "";
-    document.getElementById('sLang').value = book.lang || ""; // Dili de formda göster
+    document.getElementById('sLang').value = book.lang || ""; 
     
     apiResultsDiv.innerHTML = '';
     searchModal.style.display = 'block';
@@ -146,25 +145,28 @@ document.getElementById('manualSaveBtn').addEventListener('click', () => {
     searchModal.style.display = 'none';
 });
 
-// --- ÇİFT MOTORLU VE KADEMELİ ARAMA (Fallback Search) ---
+// --- ÇİFT MOTORLU VE KADEMELİ ARAMA (Sorgu Güçlendirici ile) ---
 document.getElementById('advancedSearchForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const t = document.getElementById('sTitle').value.trim();
     const a = document.getElementById('sAuthor').value.trim();
     const p = document.getElementById('sPublisher').value.trim();
     const y = document.getElementById('sYear').value.trim();
-    const l = document.getElementById('sLang').value; // Seçilen dil kodu
+    const l = document.getElementById('sLang').value; 
     
     loadingText.style.display = 'block';
     apiResultsDiv.innerHTML = '';
 
     // API'leri çağıran yardımcı fonksiyon
     async function fetchResults(queryStr, langCode) {
-        let googleUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(queryStr)}&maxResults=15`;
-        // Eğer dil seçildiyse Google Books aramasına dil filtresi ekle
-        if (langCode) googleUrl += `&langRestrict=${langCode}`;
-        
-        let openLibUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(queryStr)}&limit=15`;
+        // Eksik etiketleri aşmak için dili arama anahtar kelimesi olarak zorla
+        let boostedQuery = queryStr;
+        if (langCode === 'tr') boostedQuery += " Türkçe";
+        if (langCode === 'en') boostedQuery += " English";
+        if (langCode === 'ja') boostedQuery += " Japonca";
+
+        let googleUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(boostedQuery)}&maxResults=15`;
+        let openLibUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(boostedQuery)}&limit=15`;
         
         const [googleRes, openLibRes] = await Promise.allSettled([ fetch(googleUrl), fetch(openLibUrl) ]);
         let results = [];
@@ -205,7 +207,7 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
     }
 
     try {
-        // 1. Aşama: Senin yazdığın tüm detaylarla (Yayınevi, Yıl vs.) tam arama
+        // 1. Aşama: Yazılan tüm detaylarla tam arama
         let exactQuery = t;
         if(a) exactQuery += " " + a;
         if(p) exactQuery += " " + p;
@@ -213,7 +215,7 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
 
         let results = await fetchResults(exactQuery, l);
 
-        // 2. Aşama (Fallback): Detaylı arama sıfır çekerse, SADECE kitap adıyla geniş arama yap
+        // 2. Aşama (Fallback): Detaylı arama sıfır çekerse, yayınevi/yıl kriterlerini silip geniş arama yap
         if (results.length === 0 && (a || p || y)) {
             results = await fetchResults(t, l);
             if (results.length > 0) {
@@ -225,7 +227,7 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
                 infoDiv.style.fontSize = "12px";
                 infoDiv.style.fontWeight = "bold";
                 infoDiv.style.marginBottom = "10px";
-                infoDiv.innerText = "⚠️ Yayınevi/Yıl eşleşmesi bulunamadı. Seçtiğin dilde kitap adıyla bulunan kapaklar listeleniyor:";
+                infoDiv.innerText = "⚠️ Yayınevi/Yıl eşleşmesi bulunamadı. Genel veritabanı sonuçları listeleniyor:";
                 apiResultsDiv.appendChild(infoDiv);
             }
         }
@@ -262,7 +264,7 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
                         library[bookIndex].author = doc.author;
                         library[bookIndex].publisher = p ? p : doc.publisher; 
                         library[bookIndex].year = y ? y : doc.year;
-                        library[bookIndex].lang = l ? l : doc.lang; // Kullanıcı dil seçtiyse onu, seçmediyse API'den geleni kullan
+                        library[bookIndex].lang = l ? l : doc.lang; 
                         if(doc.cover) library[bookIndex].cover = doc.cover;
                     }
                 } else {
@@ -272,7 +274,7 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
                         author: doc.author,
                         publisher: p ? p : doc.publisher,
                         year: y ? y : doc.year,
-                        lang: l ? l : doc.lang, // Kullanıcı dil seçtiyse onu, seçmediyse API'den geleni kullan
+                        lang: l ? l : doc.lang, 
                         status: 'okunmadi',
                         cover: doc.cover
                     });
