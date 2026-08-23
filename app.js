@@ -66,3 +66,45 @@ window.addEventListener('click', (e) => {
         addModal.style.display = 'none';
     }
 });
+// --- BARKOD OKUYUCU (KAMERA) İŞLEMLERİ ---
+const scanBarcodeBtn = document.getElementById('scanBarcodeBtn');
+const readerDiv = document.getElementById('reader');
+let html5QrCode;
+
+scanBarcodeBtn.addEventListener('click', () => {
+    readerDiv.style.display = 'block'; // Kamera kutusunu görünür yap
+    
+    if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader");
+    }
+    
+    // Arka kamerayı başlat
+    html5QrCode.start(
+        { facingMode: "environment" }, 
+        {
+            fps: 10,
+            qrbox: { width: 250, height: 100 } // Barkod için yatay dikdörtgen okuma alanı
+        },
+        (decodedText, decodedResult) => {
+            // BARKOD BAŞARIYLA OKUNDUĞUNDA ÇALIŞACAK KISIM
+            html5QrCode.stop().then(() => {
+                readerDiv.style.display = 'none';
+                alert("Barkod Okundu: " + decodedText + "\nŞimdi bu ISBN numarasını Open Library'de aratacağız!");
+            }).catch(err => console.log("Kamera durdurulamadı", err));
+        },
+        (errorMessage) => {
+            // Tarama devam ediyor...
+        }
+    ).catch((err) => {
+        alert("Kamera başlatılamadı. Lütfen tarayıcı ayarlarına girip bu site için 'Kamera İzni' verdiğinden emin ol.");
+    });
+});
+
+// (+) Menüsünü kapatırken kamerayı da kapatmayı unutmamak için:
+document.getElementById('closeAddModal').addEventListener('click', () => {
+    if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+            readerDiv.style.display = 'none';
+        });
+    }
+});
