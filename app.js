@@ -108,3 +108,56 @@ document.getElementById('closeAddModal').addEventListener('click', () => {
         });
     }
 });
+// --- ELLE EKLEME (MANUAL ADD) İŞLEMLERİ ---
+const manualAddBtn = document.getElementById('manualAddBtn');
+const manualAddModal = document.getElementById('manualAddModal');
+const closeManualAddModal = document.getElementById('closeManualAddModal');
+const manualAddForm = document.getElementById('manualAddForm');
+
+// "Elle Ekle" butonuna basınca barkod menüsünü kapatıp formu aç
+manualAddBtn.addEventListener('click', () => {
+    document.getElementById('addModal').style.display = 'none';
+    manualAddModal.style.display = 'block';
+});
+
+// Çarpıya basınca formu kapat
+closeManualAddModal.addEventListener('click', () => {
+    manualAddModal.style.display = 'none';
+});
+
+// Form gönderildiğinde (Kaydet'e basıldığında)
+manualAddForm.addEventListener('submit', (e) => {
+    e.preventDefault(); // Sayfanın yenilenmesini engeller
+
+    // Formdaki bilgileri al
+    const title = document.getElementById('newBookTitle').value;
+    const author = document.getElementById('newBookAuthor').value;
+    const pages = document.getElementById('newBookPages').value;
+    const status = document.getElementById('newBookStatus').value;
+
+    // Yeni kitap objesi oluştur
+    const newBook = {
+        id: Date.now(), // Benzersiz bir ID atar
+        title: title,
+        author: author,
+        pages: parseInt(pages) || 0,
+        status: status,
+        cover: "" // Kapak şimdilik boş
+    };
+
+    // Kitabı kütüphane listesinin en başına ekle ve ekranı güncelle
+    library.unshift(newBook); 
+    renderLibrary(library);
+
+    // Formu temizle ve pencereyi kapat
+    manualAddForm.reset();
+    manualAddModal.style.display = 'none';
+});
+
+// Güncelleme: Boşluğa tıklayınca yeni formu da kapatması için 
+// eski window click eventini eziyoruz:
+window.addEventListener('click', (e) => {
+    const addModal = document.getElementById('addModal');
+    if (e.target === addModal) addModal.style.display = 'none';
+    if (e.target === manualAddModal) manualAddModal.style.display = 'none';
+});
