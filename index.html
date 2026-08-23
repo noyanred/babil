@@ -24,7 +24,7 @@
 
     <button class="fab-btn" id="addBookBtn">+</button>
 
-    <!-- 1. KİTAP DETAY VE DURUM GÜNCELLEME PENCERESİ -->
+    <!-- KİTAP DETAY VE DURUM GÜNCELLEME PENCERESİ -->
     <div id="bookModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" id="closeModal">&times;</span>
@@ -55,7 +55,7 @@
         </div>
     </div>
 
-    <!-- 2. İLK TERCİH MENÜSÜ (+ Butonu) -->
+    <!-- İLK TERCİH MENÜSÜ (+ Butonu) -->
     <div id="addModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" id="closeAddModal">&times;</span>
@@ -68,7 +68,7 @@
         </div>
     </div>
 
-    <!-- 3. GELİŞMİŞ ARAMA VE DÜZENLEME PENCERESİ -->
+    <!-- GELİŞMİŞ ARAMA VE DÜZENLEME PENCERESİ -->
     <div id="searchModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" id="closeSearchModal">&times;</span>
@@ -76,11 +76,21 @@
             <form id="advancedSearchForm" style="display: flex; flex-direction: column; gap: 10px;">
                 <input type="text" id="sTitle" placeholder="Kitap Adı / ISBN / Genel Arama (Zorunlu)" required>
                 <input type="text" id="sAuthor" placeholder="Yazar Adı (Opsiyonel)">
+                
                 <div style="display: flex; gap: 10px;">
-                    <input type="text" id="sPublisher" placeholder="Yayınevi (Ops.)" style="width: 50%;">
-                    <input type="number" id="sYear" placeholder="Yıl (Ops.)" style="width: 50%;">
+                    <input type="text" id="sPublisher" placeholder="Yayınevi (Ops.)" style="flex: 1;">
+                    <input type="number" id="sYear" placeholder="Yıl (Ops.)" style="flex: 1;">
+                    <select id="sLang" style="flex: 1;">
+                        <option value="">Dil (Ops.)</option>
+                        <option value="tr">Türkçe</option>
+                        <option value="en">İngilizce</option>
+                        <option value="ja">Japonca</option>
+                        <option value="fr">Fransızca</option>
+                        <option value="de">Almanca</option>
+                    </select>
                 </div>
-                <button type="submit" class="action-btn" id="searchApiBtn">🌍 Google Veritabanında Ara</button>
+                
+                <button type="submit" class="action-btn" id="searchApiBtn">🌍 Dünya Veritabanında Ara</button>
                 <div style="font-size: 12px; margin-top: 5px; opacity: 0.8;">Veya aratmadan doğrudan kaydet:</div>
                 <button type="button" class="action-btn" id="manualSaveBtn" style="background-color: var(--badge-okundu); color: #000; margin-top: 0;">💾 Sadece Yazdıklarımı Kaydet</button>
             </form>
