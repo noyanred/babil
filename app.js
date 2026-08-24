@@ -1,6 +1,5 @@
-// --- HAFIZA SİSTEMİ (Local Storage) ---
 let library = JSON.parse(localStorage.getItem('myKutuphane')) || [
-    { id: 1, title: "Dune", author: "Frank Herbert", publisher: "İthaki", status: "okundu", year: 1965, lang: "tr", cover: "https://covers.openlibrary.org/b/id/10543665-M.jpg" }
+    { id: 1, title: "Dune", author: "Frank Herbert", publisher: "İthaki", status: "okundu", year: 1965, lang: "tr", pages: 704, notes: "Bilimkurgu edebiyatının başyapıtı.", cover: "https://covers.openlibrary.org/b/id/10543665-M.jpg" }
 ];
 
 function saveLibrary() {
@@ -10,6 +9,35 @@ function saveLibrary() {
 const gridContainer = document.getElementById('library-grid');
 let currentActiveBookId = null; 
 let editingBookId = null; 
+
+// --- BİRLEŞİK FİLTRE VE SIRALAMA SİSTEMİ ---
+function applyFilters() {
+    const term = document.getElementById('searchInput').value.toLowerCase();
+    const statusVal = document.getElementById('statusFilter').value;
+    const sortVal = document.getElementById('sortFilter').value;
+
+    let filtered = library.filter(book => {
+        const matchSearch = book.title.toLowerCase().includes(term) || (book.author && book.author.toLowerCase().includes(term));
+        const matchStatus = statusVal === 'all' ? true : book.status === statusVal;
+        return matchSearch && matchStatus;
+    });
+
+    if (sortVal === 'date-desc') {
+        filtered.sort((a, b) => b.id - a.id);
+    } else if (sortVal === 'pages-asc') {
+        filtered.sort((a, b) => (parseInt(a.pages) || 0) - (parseInt(b.pages) || 0));
+    } else if (sortVal === 'pages-desc') {
+        filtered.sort((a, b) => (parseInt(b.pages) || 0) - (parseInt(a.pages) || 0));
+    } else if (sortVal === 'year') {
+        filtered.sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0));
+    }
+
+    renderLibrary(filtered);
+}
+
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+document.getElementById('statusFilter').addEventListener('change', applyFilters);
+document.getElementById('sortFilter').addEventListener('change', applyFilters);
 
 // --- KÜTÜPHANEYİ ÇİZ ---
 function renderLibrary(books) {
@@ -41,6 +69,8 @@ function openBookDetails(book) {
     document.getElementById('modalAuthor').innerText = book.author || "Bilinmiyor";
     document.getElementById('modalPublisher').innerText = book.publisher || "Bilinmiyor";
     document.getElementById('modalYear').innerText = book.year || "Bilinmiyor";
+    document.getElementById('modalPages').innerText = book.pages || "-";
+    document.getElementById('modalNotes').innerText = book.notes || "Not eklenmemiş.";
     
     let displayLang = book.lang ? book.lang.toUpperCase() : "Bilinmiyor";
     if(book.lang === 'tr') displayLang = "Türkçe";
@@ -68,7 +98,7 @@ document.getElementById('updateStatusBtn').addEventListener('click', () => {
     if(bookIndex !== -1) {
         library[bookIndex].status = newStatus;
         saveLibrary(); 
-        renderLibrary(library);
+        applyFilters();
         bookModal.style.display = 'none';
     }
 });
@@ -77,7 +107,7 @@ document.getElementById('deleteBookBtn').addEventListener('click', () => {
     if(confirm("Bu kitabı kütüphaneden silmek istediğine emin misin?")) {
         library = library.filter(b => b.id !== currentActiveBookId);
         saveLibrary(); 
-        renderLibrary(library);
+        applyFilters();
         bookModal.style.display = 'none';
     }
 });
@@ -86,7 +116,6 @@ document.getElementById('deleteBookBtn').addEventListener('click', () => {
 const searchModal = document.getElementById('searchModal');
 const apiResultsDiv = document.getElementById('apiResults');
 const loadingText = document.getElementById('loadingText');
-const manualSaveBtn = document.getElementById('manualSaveBtn');
 
 document.getElementById('manualAddBtn').addEventListener('click', () => {
     document.getElementById('addModal').style.display = 'none';
@@ -108,6 +137,9 @@ document.getElementById('editBookBtn').addEventListener('click', () => {
     document.getElementById('sPublisher').value = book.publisher || "";
     document.getElementById('sYear').value = book.year || "";
     document.getElementById('sLang').value = book.lang || ""; 
+    document.getElementById('sPages').value = book.pages || ""; 
+    document.getElementById('sCoverUrl').value = book.cover || ""; 
+    document.getElementById('sNotes').value = book.notes || ""; 
     
     apiResultsDiv.innerHTML = '';
     searchModal.style.display = 'block';
@@ -119,6 +151,8 @@ document.getElementById('manualSaveBtn').addEventListener('click', () => {
     const titleVal = document.getElementById('sTitle').value.trim();
     if(!titleVal) { alert("Lütfen en azından kitap adını girin."); return; }
 
+    const manualCover = document.getElementById('sCoverUrl').value.trim();
+
     if(editingBookId) {
         const bookIndex = library.findIndex(b => b.id === editingBookId);
         if(bookIndex !== -1) {
@@ -127,6 +161,9 @@ document.getElementById('manualSaveBtn').addEventListener('click', () => {
             library[bookIndex].publisher = document.getElementById('sPublisher').value;
             library[bookIndex].year = document.getElementById('sYear').value;
             library[bookIndex].lang = document.getElementById('sLang').value;
+            library[bookIndex].pages = document.getElementById('sPages').value;
+            library[bookIndex].notes = document.getElementById('sNotes').value;
+            if (manualCover) library[bookIndex].cover = manualCover;
         }
     } else {
         library.unshift({
@@ -136,16 +173,18 @@ document.getElementById('manualSaveBtn').addEventListener('click', () => {
             publisher: document.getElementById('sPublisher').value,
             year: document.getElementById('sYear').value,
             lang: document.getElementById('sLang').value,
+            pages: document.getElementById('sPages').value,
+            notes: document.getElementById('sNotes').value,
             status: 'okunmadi',
-            cover: ""
+            cover: manualCover
         });
     }
     saveLibrary(); 
-    renderLibrary(library);
+    applyFilters();
     searchModal.style.display = 'none';
 });
 
-// --- KATI (STRICT) ARAMA ALGORİTMASI ---
+// --- API ARAMA ---
 document.getElementById('advancedSearchForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const t = document.getElementById('sTitle').value.trim();
@@ -154,26 +193,23 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
     const y = document.getElementById('sYear').value.trim();
     const l = document.getElementById('sLang').value; 
     
+    // API sonuçları üzerinden kaydederken manuel girilen not, sayfa ve kapağı da dahil edeceğiz
+    const manualCover = document.getElementById('sCoverUrl').value.trim();
+    const manualPages = document.getElementById('sPages').value;
+    const manualNotes = document.getElementById('sNotes').value;
+
     loadingText.style.display = 'block';
     apiResultsDiv.innerHTML = '';
 
-    try {
-        // API URL'lerini hazırlama
-        let googleQuery = t;
-        if(a) googleQuery += `+inauthor:${a}`;
-        if(p) googleQuery += `+inpublisher:${p}`;
-        
-        let googleUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(googleQuery)}&maxResults=10`;
-        if (l) googleUrl += `&langRestrict=${l}`;
-        
-        let olQuery = t;
-        if(a) olQuery += ` ${a}`;
-        let openLibUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(olQuery)}&limit=10`;
-        if (l) {
-            let olLang = l === 'tr' ? 'tur' : (l === 'en' ? 'eng' : (l === 'ja' ? 'jpn' : l));
-            openLibUrl += `&language=${olLang}`;
-        }
+    async function fetchResults(queryStr, langCode) {
+        let boostedQuery = queryStr;
+        if (langCode === 'tr') boostedQuery += " Türkçe";
+        if (langCode === 'en') boostedQuery += " English";
+        if (langCode === 'ja') boostedQuery += " Japonca";
 
+        let googleUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(boostedQuery)}&maxResults=15`;
+        let openLibUrl = `https://openlibrary.org/search.json?q=${encodeURIComponent(boostedQuery)}&limit=15`;
+        
         const [googleRes, openLibRes] = await Promise.allSettled([ fetch(googleUrl), fetch(openLibUrl) ]);
         let results = [];
 
@@ -182,8 +218,7 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
             if (gData.items) {
                 gData.items.forEach(item => {
                     const doc = item.volumeInfo;
-                    // Strict Kontrol: Kullanıcı bir dil seçtiyse ve API yanlışlıkla başka dilde kitap döndürürse listeleme.
-                    if (l && doc.language && doc.language !== l) return;
+                    if (langCode && doc.language && doc.language !== langCode) return;
                     
                     results.push({
                         title: doc.title || "İsimsiz",
@@ -213,21 +248,45 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
                 });
             }
         }
+        return results;
+    }
+
+    try {
+        let exactQuery = t;
+        if(a) exactQuery += " " + a;
+        if(p) exactQuery += " " + p;
+        if(y) exactQuery += " " + y;
+
+        let results = await fetchResults(exactQuery, l);
+
+        if (results.length === 0 && (a || p || y)) {
+            results = await fetchResults(t, l);
+            if (results.length > 0) {
+                const infoDiv = document.createElement('div');
+                infoDiv.style.backgroundColor = "var(--badge-sirada)";
+                infoDiv.style.color = "#000";
+                infoDiv.style.padding = "8px";
+                infoDiv.style.borderRadius = "6px";
+                infoDiv.style.fontSize = "12px";
+                infoDiv.style.fontWeight = "bold";
+                infoDiv.style.marginBottom = "10px";
+                infoDiv.innerText = "⚠️ Yayınevi/Yıl eşleşmesi bulunamadı. Genel veritabanı sonuçları listeleniyor:";
+                apiResultsDiv.appendChild(infoDiv);
+            }
+        }
 
         loadingText.style.display = 'none';
 
         if (results.length === 0) {
             apiResultsDiv.innerHTML = `
                 <div style="background-color: #ff7675; color: #000; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 13px;">
-                    ⚠️ Aradığınız basım global veritabanlarında (Google/Open Library) bulunamadı. <br><br>
-                    Türkiye'deki butik veya manga yayınevleri kayıtlarını uluslararası sistemlere aktarmadıkları için bu durum yaşanmaktadır. <br><br>
-                    Lütfen bilgileri formdan doldurup yeşil "Sadece Yazdıklarımı Kaydet" butonuna basarak kütüphanenize ekleyin.
+                    ⚠️ Aradığınız basım global veritabanlarında bulunamadı. <br><br>
+                    Lütfen bilgileri doldurup yeşil "Sadece Yazdıklarımı Kaydet" butonuna basarak kütüphanenize ekleyin.
                 </div>
             `;
             return;
         }
 
-        // Sonuçları Bas
         results.slice(0, 15).forEach(doc => {
             const resultDiv = document.createElement('div');
             resultDiv.style.border = "1px solid var(--border-color)";
@@ -254,7 +313,9 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
                         library[bookIndex].publisher = p ? p : doc.publisher; 
                         library[bookIndex].year = y ? y : doc.year;
                         library[bookIndex].lang = l ? l : doc.lang; 
-                        if(doc.cover) library[bookIndex].cover = doc.cover;
+                        library[bookIndex].pages = manualPages || library[bookIndex].pages;
+                        library[bookIndex].notes = manualNotes || library[bookIndex].notes;
+                        library[bookIndex].cover = manualCover ? manualCover : (doc.cover || library[bookIndex].cover);
                     }
                 } else {
                     library.unshift({
@@ -264,12 +325,14 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
                         publisher: p ? p : doc.publisher,
                         year: y ? y : doc.year,
                         lang: l ? l : doc.lang, 
+                        pages: manualPages,
+                        notes: manualNotes,
                         status: 'okunmadi',
-                        cover: doc.cover
+                        cover: manualCover ? manualCover : doc.cover
                     });
                 }
                 saveLibrary(); 
-                renderLibrary(library);
+                applyFilters();
                 searchModal.style.display = 'none';
             });
             apiResultsDiv.appendChild(resultDiv);
@@ -280,6 +343,7 @@ document.getElementById('advancedSearchForm').addEventListener('submit', async (
     }
 });
 
+// --- BARKOD VE PENCERE İŞLEMLERİ ---
 document.getElementById('addBookBtn').addEventListener('click', () => document.getElementById('addModal').style.display = 'block');
 document.getElementById('closeAddModal').addEventListener('click', () => document.getElementById('addModal').style.display = 'none');
 
@@ -308,25 +372,11 @@ document.getElementById('scanBarcodeBtn').addEventListener('click', () => {
     ).catch(() => alert("Kamera başlatılamadı."));
 });
 
-document.getElementById('searchInput').addEventListener('input', (e) => {
-    const term = e.target.value.toLowerCase();
-    const filtered = library.filter(book => 
-        book.title.toLowerCase().includes(term) || 
-        (book.author && book.author.toLowerCase().includes(term))
-    );
-    renderLibrary(filtered);
-});
-
-document.getElementById('statusFilter').addEventListener('change', (e) => {
-    const val = e.target.value;
-    if(val === 'all') renderLibrary(library);
-    else renderLibrary(library.filter(book => book.status === val));
-});
-
 window.addEventListener('click', (e) => {
     if (e.target === bookModal) bookModal.style.display = 'none';
     if (e.target === document.getElementById('addModal')) document.getElementById('addModal').style.display = 'none';
     if (e.target === searchModal) searchModal.style.display = 'none';
 });
 
-renderLibrary(library);
+// İLK YÜKLEME
+applyFilters();
