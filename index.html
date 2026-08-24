@@ -17,6 +17,12 @@
                 <option value="sirada">Sırada</option>
                 <option value="okunmadi">Okunmadı</option>
             </select>
+            <select id="sortFilter">
+                <option value="date-desc">Eklenme (Yeni-Eski)</option>
+                <option value="pages-asc">Sayfa (Azdan Çoğa)</option>
+                <option value="pages-desc">Sayfa (Çoktan Aza)</option>
+                <option value="year">Basım Yılı</option>
+            </select>
         </div>
     </header>
 
@@ -40,6 +46,13 @@
                 <p><strong>Yayınevi:</strong> <span id="modalPublisher">-</span></p>
                 <p><strong>Yıl:</strong> <span id="modalYear">-</span></p>
                 <p><strong>Dil:</strong> <span id="modalLang">-</span></p>
+                <p><strong>Sayfa:</strong> <span id="modalPages">-</span></p>
+                
+                <!-- KİŞİSEL NOT ALANI -->
+                <div style="margin-top: 15px; padding: 12px; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; font-size: 13px; text-align: left; max-height: 150px; overflow-y: auto;">
+                    <strong>Notlarım / Özet:</strong><br>
+                    <span id="modalNotes" style="display: block; margin-top: 5px; opacity: 0.9; white-space: pre-wrap;">Not eklenmemiş.</span>
+                </div>
                 
                 <div style="margin-top: 15px; display: flex; gap: 10px;">
                     <select id="editStatusSelect" style="flex: 1; min-width: 0;">
@@ -49,7 +62,7 @@
                     </select>
                     <button id="updateStatusBtn" class="action-btn" style="margin-top: 0; background-color: var(--badge-okundu); color: #000;">Durumu Güncelle</button>
                 </div>
-                <button id="editBookBtn" class="action-btn" style="background-color: var(--badge-sirada); color: #000; margin-top: 10px;">✏️ Bilgileri Düzenle / Güncelle</button>
+                <button id="editBookBtn" class="action-btn" style="background-color: var(--badge-sirada); color: #000; margin-top: 10px;">✏️ Bilgileri / Notları Düzenle</button>
                 <button id="deleteBookBtn" class="action-btn" style="background-color: #ff7675; color: #000; margin-top: 10px;">🗑️ Kütüphaneden Sil</button>
             </div>
         </div>
@@ -68,7 +81,7 @@
         </div>
     </div>
 
-    <!-- GELİŞMİŞ ARAMA VE DÜZENLEME PENCERESİ -->
+    <!-- GELİŞMİŞ ARAMA, DÜZENLEME VE NOT PENCERESİ -->
     <div id="searchModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" id="closeSearchModal">&times;</span>
@@ -76,13 +89,11 @@
             <form id="advancedSearchForm" style="display: flex; flex-direction: column; gap: 10px;">
                 <input type="text" id="sTitle" placeholder="Kitap Adı / ISBN / Genel Arama (Zorunlu)" required>
                 <input type="text" id="sAuthor" placeholder="Yazar Adı (Opsiyonel)">
-                
-                <!-- Yayınevi artık kendi tam satırında -->
                 <input type="text" id="sPublisher" placeholder="Yayınevi (Opsiyonel)">
                 
-                <!-- Yıl ve Dil aynı satırda, min-width ezildi -->
                 <div style="display: flex; gap: 10px;">
                     <input type="number" id="sYear" placeholder="Yıl (Ops.)" style="flex: 1; min-width: 50px;">
+                    <input type="number" id="sPages" placeholder="Sayfa" style="flex: 1; min-width: 50px;">
                     <select id="sLang" style="flex: 1; min-width: 50px;">
                         <option value="">Dil (Ops.)</option>
                         <option value="tr">Türkçe</option>
@@ -92,6 +103,10 @@
                         <option value="de">Almanca</option>
                     </select>
                 </div>
+                
+                <!-- MANUEL KAPAK VE KİŞİSEL NOTLAR -->
+                <input type="text" id="sCoverUrl" placeholder="Manuel Kapak Görseli Linki (Opsiyonel)">
+                <textarea id="sNotes" placeholder="Kişisel notlarınız, alıntılarınız veya özet alanı..." rows="3" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--bg-color); color: var(--text-color); outline: none; resize: vertical;"></textarea>
                 
                 <button type="submit" class="action-btn" id="searchApiBtn">🌍 Dünya Veritabanında Ara</button>
                 <div style="font-size: 12px; margin-top: 5px; opacity: 0.8;">Veya aratmadan doğrudan kaydet:</div>
